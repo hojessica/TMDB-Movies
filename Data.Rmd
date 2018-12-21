@@ -1,0 +1,100 @@
+---
+title: "Final_Paper"
+author: "STOR 320.01 Group 7"
+date: "11/30/2018"
+output: html_document
+---
+
+```{r, include=FALSE}
+#Libraries needed
+library(tidyverse)
+require(summarytools)
+require(knitr)
+require(kableExtra)
+require(xtable)
+require(ggpubr)
+
+#Data
+load("Cleaning.Rdata")
+
+#Use fullmovies dataset
+
+opts_chunk$set(results='asis')
+
+remove(b,c,credits,d,f,x,new,movies,n)
+
+#Binary Variables are now Factors
+factor.col = c(10:22)
+for(i in 10:22){
+  fullmovies[,i] = lapply(fullmovies[,i], factor)
+}
+
+fullmovies$original_language =factor(fullmovies$original_language)
+```
+
+## DATA Section
+
+
+```{r echo=FALSE}
+#Summarytools package used!!!
+#knitr::opts_chunk$set(echo = TRUE, results = 'asis')
+knitr::opts_chunk$set(results = 'asis')
+dfSummary(fullmovies, plain.ascii = FALSE, style = 'grid')
+```
+
+```{r echo=FALSE}
+#Figures
+
+#Correlation Matrix of Numerical Variables
+library(corrplot)
+cols = c(1,4,6,7)
+correlations = cor(fullmovies[,cols])
+corrplot::corrplot(correlations, method="circle", type="upper")
+
+#Genres Plots
+action = ggplot(fullmovies) +
+  geom_bar(aes(x=Action), fill=c("plum", "orange")) + theme(axis.title = element_blank()) + ggtitle("Action") + coord_cartesian(ylim=c(0,1300)) + ylab("Count")
+
+fantasy = ggplot(fullmovies) + geom_bar(aes(x=Fantasy), fill=c("plum", "orange")) + theme(axis.title = element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Fantasy") + coord_cartesian(ylim=c(0,1300))
+
+drama = ggplot(fullmovies) + geom_bar(aes(x=Drama), fill=c("plum", "orange")) + theme(axis.title = element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Drama") + coord_cartesian(ylim=c(0,1300))
+
+thriller = ggplot(fullmovies) + geom_bar(aes(x=Thriller), fill=c("plum", "orange")) + theme(axis.title = element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Thriller") + coord_cartesian(ylim=c(0,1300))
+
+comedy = ggplot(fullmovies) + geom_bar(aes(x=Comedy), fill=c("plum", "orange")) + theme(axis.title = element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Comedy") + coord_cartesian(ylim=c(0,1300))
+
+
+ggplot(fullmovies) +
+  geom_bar(aes(x=original_language), fill="deepskyblue4", stat="count") + ylab("Count") + ggtitle("Original Languages") + theme(axis.title.x=element_blank())
+
+figure1= ggarrange(action, fantasy, drama, thriller, comedy, ncol=5)
+
+annotate_figure(figure1, top=text_grob("Movie Genres", color="black", face="bold", size=16), left=text_grob("Count", rot=90))
+```
+
+```{r echo=FALSE}
+#Production Companies
+warnerbros = ggplot(fullmovies) + geom_bar(aes(x=`Warner Bros.`), fill=c("maroon", "sienna2")) + theme(axis.title=element_blank()) + ggtitle("Warner Bros.") + coord_cartesian(ylim=c(0,1500))
+
+wdp = ggplot(fullmovies) + geom_bar(aes(x=`Walt Disney Pictures`), fill=c("darkcyan", "violet")) + theme(axis.title=element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Walt Disney Pictures") + coord_cartesian(ylim=c(0,1500))
+
+up = ggplot(fullmovies) + geom_bar(aes(x=`Universal Pictures`), fill=c("darkgoldenrod2", "firebrick3")) + theme(axis.title=element_blank()) + ggtitle("Universal Pictures") + coord_cartesian(ylim=c(0,1500))
+
+cp = ggplot(fullmovies) + geom_bar(aes(x=`Columbia Pictures`), fill=c("salmon", "navyblue")) + theme(axis.title=element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Columbia Pictures") + coord_cartesian(ylim=c(0,1500))
+
+pp = ggplot(fullmovies) + geom_bar(aes(x=`Paramount Pictures`), fill=c("darkturquoise", "forestgreen")) + theme(axis.title=element_blank()) + ggtitle("Paramount Pictures") + coord_cartesian(ylim=c(0,1500))
+
+rm = ggplot(fullmovies) + geom_bar(aes(x=`Relativity Media`), fill=c("slateblue3", "lightpink2")) + theme(axis.title=element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Relativity Media") + coord_cartesian(ylim=c(0,1500))
+
+tcffc = ggplot(fullmovies) + geom_bar(aes(x=`Twentieth Century Fox Film Corporation`), fill=c("burlywood", "red3")) + theme(axis.title=element_blank()) + ggtitle("Twentieth Century Fox Film Co.") + coord_cartesian(ylim=c(0,1500))
+
+nlc = ggplot(fullmovies) + geom_bar(aes(x=`New Line Cinema`), fill=c("deeppink", "tomato4")) + theme(axis.title=element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("New Line Cinema") + coord_cartesian(ylim=c(0,1500))
+
+figure = ggarrange(warnerbros, wdp, up, cp, pp, rm, tcffc, nlc, ncol=2, nrow=4)
+
+#Annotate the figure
+annotate_figure(figure, top=text_grob("Production Companies", color="black", face="bold",size=16),
+                left=text_grob("Count", rot=90))
+```
+
+

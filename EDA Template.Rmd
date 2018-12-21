@@ -1,0 +1,321 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320.01 Group 7"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r, include=F}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+# Import Data Below
+# Use 'fullmovies' Table
+load("Cleaning.Rdata")
+```
+
+#Creator: Simrann Wadhwa
+
+###Q1: What is the relationship between popularity and genre?
+
+```{r}
+#
+```
+
+###Q2: Do certain production companies tend to make shorter/longer movies?
+
+```{r}
+#
+```
+
+#Interpreter: Jessica Ho
+
+###Q1: Is there any relationship between budget and revenue?
+
+```{r, echo=FALSE}
+fullmovies %>%
+  ggplot(aes(x=budget/1000000, y=revenue/1000000)) + geom_point() +geom_smooth(se=FALSE) + 
+  xlab("Budget (in Millions)") +
+  ylab("Revenue (in Millions)")
+```
+
+###Q2: What is the distribution of runtime?
+
+```{r, echo=FALSE}
+fullmovies %>%
+  ggplot(aes(x=runtime)) + geom_histogram(binwidth = 10) +
+  xlab("Runtime (in Minutes)") +
+  ggtitle("Distribution of Movie Runtimes")
+```
+
+#Orator: Bill Hansen
+
+###Q1: Is there a relationship between release date and revenue?
+
+```{r, echo=F}
+date_revenue <- fullmovies %>% 
+  select(release_date, revenue)
+date_revenue$release_date <- as.character(date_revenue$release_date)
+
+groupvector <- c("group")
+date_revenue[ , groupvector] <- 0
+
+count = 0
+for (i in 1:nrow(date_revenue)) {
+  date <- date_revenue[i,1]
+  if (grepl("-01-", date) || grepl("-02-", date)) {
+    date_revenue[i,3] = 1
+  }
+  else if (grepl("-03-", date) || grepl("-04-", date)) {
+    date_revenue[i,3] = 2
+  }
+  else if (grepl("-05-", date) || grepl("-06-", date)) {
+    date_revenue[i,3] = 3
+  }
+  else if (grepl("-07-", date) || grepl("-08-", date)) {
+    date_revenue[i,3] = 4
+  }
+  else if (grepl("-09-", date) || grepl("-10-", date)) {
+    date_revenue[i,3] = 5
+  }
+  else if (grepl("-11-", date) || grepl("-12-", date)) {
+    date_revenue[i,3] = 6
+  }
+  else {
+    date_revenue[i,3] = 1
+  }
+}
+
+d_r.summary <- date_revenue %>% 
+  group_by(group) %>% 
+  summarize(
+    n = n(),
+    med.rev = median(revenue)
+  )
+
+ggplot(d_r.summary, aes(group, med.rev)) + 
+  geom_bar(stat = "identity", fill = "darkgreen") + 
+  scale_x_continuous(name = "Months",
+                     breaks = c(1,2,3,4,5,6), 
+                     labels = c("Jan-Feb", "Mar-Apr", "May-Jun",
+                                "Jul-Aug", "Sep-Oct", "Nov-Dec")
+  ) + 
+  ylab("Median Revenue") + 
+  theme(axis.ticks = element_blank())
+```
+
+```{r, echo=F}
+for (i in 1:nrow(date_revenue)) {
+  date <- date_revenue[i,1]
+  if (grepl("-01-", date)) {
+    date_revenue[i,3] = 1
+  }
+  else if (grepl("-02-", date)) {
+    date_revenue[i,3] = 2
+  }
+  else if (grepl("-03-", date)) {
+    date_revenue[i,3] = 3
+  }
+  else if (grepl("-04-", date)) {
+    date_revenue[i,3] = 4
+  }
+  else if (grepl("-05-", date)) {
+    date_revenue[i,3] = 5
+  }
+  else if (grepl("-06-", date)) {
+    date_revenue[i,3] = 6
+  }
+  else if (grepl("-07-", date)) {
+    date_revenue[i,3] = 7
+  }
+  else if (grepl("-08-", date)) {
+    date_revenue[i,3] = 8
+  }
+  else if (grepl("-09-", date)) {
+    date_revenue[i,3] = 9
+  }
+  else if (grepl("-10-", date)) {
+    date_revenue[i,3] = 10
+  }
+  else if (grepl("-11-", date)) {
+    date_revenue[i,3] = 11
+  }
+  else if (grepl("-12-", date)) {
+    date_revenue[i,3] = 12
+  }
+  else {
+    date_revenue[i,3] = 1
+  }
+}
+
+d_r.summary2 <- date_revenue %>% 
+  group_by(group) %>% 
+  summarize(
+    n = n(),
+    med.rev = median(revenue)
+  )
+
+ggplot(d_r.summary2, aes(group, med.rev)) + 
+  geom_line(color = "darkgreen") + 
+  geom_point(color = "darkgreen") + 
+  scale_x_continuous(name = "Months",
+                     breaks = c(1,2,3,4,5,6,7,8,9,10,11,12),
+                     labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+  ) + 
+  ylab("Median Revenue") + 
+  theme(axis.ticks = element_blank())
+```
+
+###Q2: Is there a relationship between tagline and popularity? If a tagline has a certain keyword, does the popularity increase/decrease?
+
+```{r, echo=F}
+tag_pop <- fullmovies %>% 
+  select(tagline, popularity, title)
+
+sum <- c(0, 0, 0, 0)
+count <- c(0, 0, 0, 0)
+avg <- c(0, 0, 0, 0)
+keywords <- c("hero", "one", "see", "story")
+for (i in 1:nrow(tag_pop)) {
+  tag <- as.character(tag_pop[i, 1])
+  pop <- as.double(tag_pop[i, 2])
+  if (pop > 50) {
+    if (grepl(keywords[1], tag)) {
+      sum[1] <- sum[1] + pop
+      count[1] <- count[1] + 1
+    }
+    if (grepl(keywords[2], tag)) {
+      sum[2] <- sum[2] + pop
+      count[2] <- count[2] + 1
+    }
+    if (grepl(keywords[3], tag)) {
+      sum[3] <- sum[3] + pop
+      count[3] <- count[3] + 1
+    }
+    if (grepl(keywords[4], tag)) {
+      sum[4] <- sum[4] + pop
+      count[4] <- count[4] + 1
+    }
+  }
+}
+
+for (i in 1:length(avg)) {
+  avg[i] = sum[i] / count[i]
+}
+
+key_avg <- data.frame(keywords, avg) 
+key_avg$keywords <- fct_reorder(key_avg$keywords, key_avg$avg, .desc = T)
+
+key_avg %>% 
+  ggplot(aes(keywords, avg)) + 
+  geom_bar(stat = "identity", fill = "goldenrod") + 
+  xlab("Tagline Keywords") + 
+  ylab("Average Popularity") + 
+  theme(axis.ticks = element_blank())
+
+# see NLP
+# names(sort(summary(as.factor(tag_pop$tagline)), decreasing=T)[1:10])
+```
+
+#Deliverer: Marek Garcia
+
+###Q1: How does runtime affect popularity? Are people more accepting of longer/shorter runtimes for certain genres?
+
+```{r}
+#
+```
+
+###Q2: What are the best times (measured in popularity) to release certain genres?
+
+```{r}
+#
+```
+
+# Follow-up Questions
+
+### New Questions Based Off Initial Investigation
+
+- Q1: WRITE_QUESTION_HERE
+- Q2: Does Walt Disney Pictures have a larger/smaller budget for Fantasy and Action movies that release in certain months?
+- Q3: If a company releases a movie on a certain date, do they generate more/less revenue? 
+- Q4: WRITE_QUESTION_HERE
+
+### Investigation of Follow-up Questions
+
+GIVE WHAT 2 QUESTIONS YOU ATTEMPTED TO INVESTIGATE FURTHER IN COMPLETE SENTENCES (*Example:* Our group decided to investigate Q2 and Q4 in further detail.)
+
+SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
+
+```{r}
+# If a company releases a movie on a certain date in September, do they generate more/less revenue?
+
+sept_movies <- date_revenue %>% 
+  filter(group == 9)
+
+sept_movies$release_date <- as.Date(sept_movies$release_date)
+sept_movies$release_date <- as.numeric(gsub("-","",sept_movies$release_date))
+sept_movies <- sept_movies %>% 
+  mutate(release_day = release_date%%100)
+
+d_r.summary3 <- sept_movies %>% 
+  group_by(release_day) %>% 
+  summarize(
+    n = n(),
+    med.rev = median(revenue)
+  )
+
+ggplot(d_r.summary3, aes(release_day, med.rev)) + 
+  geom_bar(stat = "identity", fill = "darkgreen") + 
+  scale_x_continuous(breaks = seq(1,30,1)) + 
+  scale_y_continuous(expand = c(0,0)) + 
+  xlab("September Release Day") + 
+  ylab("Median Revenue")
+```
+
+```{r}
+#Does Walt Disney Pictures have a larger/smaller budget for Fantasy and Action movies that release in certain months?
+
+#Extract month from release date
+df <- separate(data = fullmovies,col = "release_date",into = c("year","month","day"))
+df$month <- factor(df$month)
+df %>%
+  group_by(month)
+
+#Filter out Production Companies
+wdp <- df %>%
+  filter(`Walt Disney Pictures` == 1) %>%
+  select(-`Universal Pictures`, -`Columbia Pictures`, -`Paramount Pictures`, -`Warner Bros.`,-`Relativity Media`, -`Twentieth Century Fox Film Corporation`, -`New Line Cinema`)
+
+#Filter out Fantasy movies from Walt Disney Pictures
+fanfilt = wdp %>%
+  filter(Fantasy==1) %>%
+  select(-Drama, -Thriller, -Comedy)
+
+#Filter out Action movies from Walt Disney Pictures
+disact = wdp %>%
+  filter(Action==1) %>%
+  select(-Drama, -Thriller, -Comedy)
+
+#Plot
+p1 <- ggplot(fanfilt) + 
+  geom_bar(aes(x=Fantasy, y=budget/1000000, fill=month),stat="identity", position="dodge")  +
+  ylab("Budget (in Millions)") +
+  scale_fill_manual(values = c('03' = "sienna1", '05' = "steelblue1", '06' = "seagreen1", '07' = "pink", '08'= "mintcream",'11' = "plum1", '12'="lightgoldenrod"))
+  
+p2 <- ggplot(disact) + 
+  geom_bar(aes(x=Action, y=budget/1000000, fill=month),stat="identity", position="dodge")  +
+  ylab("Budget (in Millions)") + scale_fill_manual(values = c('01' = "indianred", '03' = "sienna1", '05' = "steelblue1", '06' = "seagreen1", '07'="pink", '10'="skyblue",'11'="plum1", '12'="lightgoldenrod"))
+
+require(gridExtra)
+grid.arrange(p1,p2, ncol=2)
+```
+
+#Summary
+
+GIVE A 2 PARAGRAPH SUMMARY. 
+
+PARAGRAPH 1 SHOULD DESCRIBE WHAT YOU LEARNED ABOUT YOUR DATA FROM INVESTIGATING THE INITIAL QUESTIONS. DID YOU FIND ANYTHING UNUSUAL IN YOUR DATA? DID ANYTHING SURPRISE YOU? WHICH OF THE INITIAL QUESTIONS WERE HELPFUL IN LEADING YOU TO MORE QUESTIONS?
+
+PARAGRAPH 2 SHOULD SUMMARIZE WHAT YOU LEARNED FROM INVESTIGATING THE FOLLOW-UP QUESTIONS. WHY ARE THESE FOLLOW-UP QUESTIONS INTERESTING FOR INVESTIGATION? DESCRIBE THE TABLES/FIGURES YOU USED TO EXPLORE ANSWERS TO THESE FOLLOW-UP QUESTIONS? WHAT DID YOU LEARN FROM THE TABLES/FIGURES REGARDING THE FOLLOW-UP QUESTIONS YOU PROPOSED?
+

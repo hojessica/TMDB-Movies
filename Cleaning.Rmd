@@ -1,0 +1,124 @@
+---
+title: "CleanMovies"
+author: "STOR 320.01 Group 7"
+date: "10/28/2018"
+output: html_document
+---
+
+```{r, include=FALSE,warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(jsonlite)
+library(stringr)
+movies <- read_csv("tmdb_5000_movies.csv")
+credits <- read_csv("tmdb_5000_credits.csv")
+
+movies=na.omit(movies)
+
+new <- movies %>%
+        select(id, title,genres, original_language,production_companies,tagline,budget, popularity,revenue,release_date, runtime)
+```
+
+
+```{r}
+#Convert Genres column from JSON
+genres <- new %>%
+        dplyr::filter(nchar(genres)>2) %>%
+        mutate(js = lapply(genres, fromJSON)) %>%
+        unnest(js) %>%
+        select(id, title, genres=name) %>%
+        mutate_if(is.character, factor)
+
+
+#genres %>% group_by(genres) %>% count() %>%
+        #ggplot(aes(x=reorder(genres, n), y=n, fill=genres)) +
+        #geom_col(show.legend=FALSE) + coord_flip() +
+        #labs(x="", y="Number of movies")
+
+#Convert Production Companies column from JSON
+prodc <- new %>% 
+  filter(nchar(production_companies)>2) %>%
+  mutate(js=lapply(production_companies, fromJSON)) %>%
+  unnest(js) %>%
+  select(id, title, Production_comapnies=name) %>%
+  mutate_if(is.character, factor)
+
+head(genres)
+head(prodc)
+```
+
+```{r}
+#Convert Dates to create a numeric variable as yyyymmdd
+new$release_date = as.Date(new$release_date,format="")
+new$release_date=as.numeric(gsub("-","",new$release_date))
+
+new <- new %>%
+  mutate(ReleaseYear = release_date%/%10000)
+
+head(new)
+```
+
+```{r}
+#Create Binary Variables for Genres
+#Mario's code
+#genres %>% 
+#  complete(id,title,genres) %>% 
+#  filter(id==19995,title=="Avatar")
+
+  
+b <- genres %>%
+  mutate(value=rep(1, 3846))
+
+c <- b %>%
+  spread(key=genres, value=value) %>%
+  select(id, title, Action, Comedy, Drama, Thriller, Fantasy)
+
+c$Action[is.na(c$Action)] <- 0
+c$Comedy[is.na(c$Comedy)] <- 0
+c$Drama[is.na(c$Drama)] <- 0
+c$Thriller[is.na(c$Thriller)] <- 0
+c$Fantasy[is.na(c$Fantasy)] <- 0
+
+x <- right_join(movies, c, by=c("id", "title"))
+
+
+#Create a column of values 1, pick 5-10 genres (?), join , change NA values to 0
+```
+
+```{r, warnings = F}
+#Creating Binary Variables for Production Companies
+
+n <- nrow(prodc)
+d <- prodc %>%
+  mutate(value=rep(1, n))
+
+f <- d %>%
+  spread(key=Production_comapnies, value=value) %>%
+  select(id, title, `Walt Disney Pictures`, `Universal Pictures`, `Warner Bros.`, `Columbia Pictures`, `Paramount Pictures`, `Relativity Media`, `Twentieth Century Fox Film Corporation`, `New Line Cinema`) 
+
+f$`Walt Disney Pictures`[is.na(f$`Walt Disney Pictures`)] <- 0
+f$`Universal Pictures`[is.na(f$`Universal Pictures`)] <- 0
+f$`Warner Bros.`[is.na(f$`Warner Bros.`)] <- 0
+f$`Columbia Pictures`[is.na(f$`Columbia Pictures`)] <- 0
+f$`Paramount Pictures`[is.na(f$`Paramount Pictures`)] <- 0
+f$`Relativity Media`[is.na(f$`Relativity Media`)] <- 0
+f$`Twentieth Century Fox Film Corporation`[is.na(f$`Twentieth Century Fox Film Corporation`)] <- 0
+f$`New Line Cinema`[is.na(f$`New Line Cinema`)] <- 0
+
+#Join updated movies with updated production companies 
+#Keep all 
+fullmovies <- right_join(x, f, by=c("id", "title"))
+
+fullmovies <- fullmovies %>%
+  select(-genres, -production_companies, -spoken_languages, -production_countries, -keywords, -homepage, -original_title, -overview, -status, -vote_average, -vote_count)
+
+```
+
+```{r}
+#Export dataset to csv file
+write_csv(fullmovies, "cleanmovies.csv")
+
+save.image(file="Cleaning.Rdata")
+#load("Cleaning.Rdata")
+```
+

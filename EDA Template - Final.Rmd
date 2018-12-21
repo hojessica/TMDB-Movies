@@ -1,0 +1,481 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320.01 Group 7"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r, include=F}
+knitr::opts_chunk$set(echo = TRUE)
+library(fmsb)
+library(ggpubr)
+library(lubridate)
+library(tidyverse)
+
+# Import Data Below
+# Use 'fullmovies' Table
+load("Cleaning.Rdata")
+```
+
+#Creator: Simrann Wadhwa
+
+###Q1: What is the distribution of popularity?
+
+```{r}
+ggplot(fullmovies, aes(popularity)) + 
+  geom_histogram(binwidth=10) + 
+  xlab("Popularity")
+```
+
+###Q2: Do certain production companies tend to make shorter/longer movies?
+
+```{r, warning=FALSE, message=FALSE}
+
+tibble1<-filter(fullmovies, fullmovies$'Walt Disney Pictures'==1)
+tibble2<-filter(fullmovies, fullmovies$'Universal Pictures'==1)
+tibble3<-filter(fullmovies, fullmovies$'Warner Bros.'==1)
+tibble4<-filter(fullmovies, fullmovies$'Columbia Pictures'==1)
+tibble5<-filter(fullmovies, fullmovies$'Paramount Pictures'==1)
+tibble6<-filter(fullmovies, fullmovies$'Relativity Media'==1)
+tibble7<-filter(fullmovies, fullmovies$'Twentieth Century Fox Film Corporation'==1)
+tibble8<-filter(fullmovies, fullmovies$'New Line Cinema'==1)
+ 
+ggplot() + 
+geom_freqpoly(aes(tibble1$runtime), colour="pink") + geom_freqpoly(aes(tibble2$runtime), colour="turquoise") + geom_freqpoly(aes(tibble3$runtime), colour="lightslateblue") + geom_freqpoly(aes(tibble4$runtime), colour="coral") + geom_freqpoly(aes(tibble5$runtime), colour="darkolivegreen1") + geom_freqpoly(aes(tibble6$runtime), colour="lightgoldenrod1") + geom_freqpoly(aes(tibble7$runtime), colour="midnightblue") + geom_freqpoly(aes(tibble8$runtime), colour="indianred3") + 
+labs(title="Runtime distribution across Production Companies", x="Runtime") 
+```
+
+#Interpreter: Jessica Ho
+
+###Q1: Is there any relationship between budget and revenue?
+
+```{r, message=FALSE}
+fullmovies %>% 
+  ggplot(aes(x=budget/1000000, y=revenue/1000000)) + 
+  geom_point() + 
+  geom_smooth(se=FALSE) + 
+  xlab("Budget (in Millions)") + 
+  ylab("Revenue (in Millions)")
+```
+
+###Q2: What is the distribution of runtime?
+
+```{r}
+fullmovies %>%
+  ggplot(aes(x=runtime)) + 
+  geom_histogram(binwidth = 10) + 
+  xlab("Runtime (in Minutes)") + 
+  ggtitle("Distribution of Movie Runtimes")
+```
+
+#Orator: Bill Hansen
+
+###Q1: Is there a relationship between release date and revenue?
+
+```{r}
+date_revenue <- fullmovies %>% 
+  select(release_date, revenue)
+date_revenue$release_date <- as.character(date_revenue$release_date)
+
+groupvector <- c("group")
+date_revenue[ , groupvector] <- 0
+
+count = 0
+for (i in 1:nrow(date_revenue)) {
+  date <- date_revenue[i,1]
+  if (grepl("-01-", date) || grepl("-02-", date)) {
+    date_revenue[i,3] = 1
+  }
+  else if (grepl("-03-", date) || grepl("-04-", date)) {
+    date_revenue[i,3] = 2
+  }
+  else if (grepl("-05-", date) || grepl("-06-", date)) {
+    date_revenue[i,3] = 3
+  }
+  else if (grepl("-07-", date) || grepl("-08-", date)) {
+    date_revenue[i,3] = 4
+  }
+  else if (grepl("-09-", date) || grepl("-10-", date)) {
+    date_revenue[i,3] = 5
+  }
+  else if (grepl("-11-", date) || grepl("-12-", date)) {
+    date_revenue[i,3] = 6
+  }
+  else {
+    date_revenue[i,3] = 1
+  }
+}
+
+d_r.summary <- date_revenue %>% 
+  group_by(group) %>% 
+  summarize(
+    n = n(),
+    med.rev = median(revenue)
+  )
+
+ggplot(d_r.summary, aes(group, med.rev)) + 
+  geom_bar(stat = "identity", fill = "darkgreen") + 
+  scale_x_continuous(name = "Months",
+                     breaks = c(1,2,3,4,5,6), 
+                     labels = c("Jan-Feb", "Mar-Apr", "May-Jun",
+                                "Jul-Aug", "Sep-Oct", "Nov-Dec")
+  ) + 
+  ylab("Median Revenue") + 
+  theme(axis.ticks = element_blank())
+```
+
+```{r}
+for (i in 1:nrow(date_revenue)) {
+  date <- date_revenue[i,1]
+  if (grepl("-01-", date)) {
+    date_revenue[i,3] = 1
+  }
+  else if (grepl("-02-", date)) {
+    date_revenue[i,3] = 2
+  }
+  else if (grepl("-03-", date)) {
+    date_revenue[i,3] = 3
+  }
+  else if (grepl("-04-", date)) {
+    date_revenue[i,3] = 4
+  }
+  else if (grepl("-05-", date)) {
+    date_revenue[i,3] = 5
+  }
+  else if (grepl("-06-", date)) {
+    date_revenue[i,3] = 6
+  }
+  else if (grepl("-07-", date)) {
+    date_revenue[i,3] = 7
+  }
+  else if (grepl("-08-", date)) {
+    date_revenue[i,3] = 8
+  }
+  else if (grepl("-09-", date)) {
+    date_revenue[i,3] = 9
+  }
+  else if (grepl("-10-", date)) {
+    date_revenue[i,3] = 10
+  }
+  else if (grepl("-11-", date)) {
+    date_revenue[i,3] = 11
+  }
+  else if (grepl("-12-", date)) {
+    date_revenue[i,3] = 12
+  }
+  else {
+    date_revenue[i,3] = 1
+  }
+}
+
+d_r.summary2 <- date_revenue %>% 
+  group_by(group) %>% 
+  summarize(
+    n = n(),
+    med.rev = median(revenue)
+  )
+
+ggplot(d_r.summary2, aes(group, med.rev)) + 
+  geom_line(color = "darkgreen") + 
+  geom_point(color = "darkgreen") + 
+  scale_x_continuous(name = "Months",
+                     breaks = c(1,2,3,4,5,6,7,8,9,10,11,12),
+                     labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+  ) + 
+  ylab("Median Revenue") + 
+  theme(axis.ticks = element_blank())
+```
+
+###Q2: Is there a relationship between tagline and popularity? If a tagline has a certain keyword, does the popularity increase/decrease?
+
+```{r}
+tag_pop <- fullmovies %>% 
+  select(tagline, popularity, title)
+
+sum <- c(0, 0, 0, 0)
+count <- c(0, 0, 0, 0)
+avg <- c(0, 0, 0, 0)
+keywords <- c("hero", "one", "see", "story")
+for (i in 1:nrow(tag_pop)) {
+  tag <- as.character(tag_pop[i, 1])
+  pop <- as.double(tag_pop[i, 2])
+  if (pop > 50) {
+    if (grepl(keywords[1], tag)) {
+      sum[1] <- sum[1] + pop
+      count[1] <- count[1] + 1
+    }
+    if (grepl(keywords[2], tag)) {
+      sum[2] <- sum[2] + pop
+      count[2] <- count[2] + 1
+    }
+    if (grepl(keywords[3], tag)) {
+      sum[3] <- sum[3] + pop
+      count[3] <- count[3] + 1
+    }
+    if (grepl(keywords[4], tag)) {
+      sum[4] <- sum[4] + pop
+      count[4] <- count[4] + 1
+    }
+  }
+}
+
+for (i in 1:length(avg)) {
+  avg[i] = sum[i] / count[i]
+}
+
+key_avg <- data.frame(keywords, avg) 
+key_avg$keywords <- fct_reorder(key_avg$keywords, key_avg$avg, .desc = T)
+
+key_avg %>% 
+  ggplot(aes(keywords, avg)) + 
+  geom_bar(stat = "identity", fill = "goldenrod") + 
+  xlab("Tagline Keywords") + 
+  ylab("Average Popularity") + 
+  theme(axis.ticks = element_blank())
+
+# see NLP
+# names(sort(summary(as.factor(tag_pop$tagline)), decreasing=T)[1:10])
+```
+
+#Deliverer: Marek Garcia
+
+###Q1: How does runtime affect popularity? Are people more accepting of longer/shorter runtimes for certain genres?
+
+```{r}
+marek1 <- select(fullmovies, id, runtime, popularity, Drama, Comedy, Action, Thriller, Fantasy) %>% 
+  filter(runtime > 0 & runtime < 175) %>% 
+  filter(popularity < 200)
+
+Z <- marek1 %>% 
+  ggplot() +
+  geom_point(mapping = aes(x = runtime, y = popularity), size = 1, position = "jitter", color = "black") +
+  ggtitle("All")
+
+A <- marek1 %>% 
+  filter(Drama == 1) %>%
+  ggplot() +
+  geom_point(mapping = aes(x = runtime, y = popularity), size = 1, position = "jitter", color = "blue") +
+  ggtitle("Drama") + theme(axis.title = element_blank())
+
+B <- marek1 %>% 
+  filter(Comedy == 1) %>%
+  ggplot() +
+  geom_point(mapping = aes(x = runtime, y = popularity), size = 1, position = "jitter", color = "red") +
+  ggtitle("Comedy") + theme(axis.title = element_blank())
+
+C <- marek1 %>% 
+  filter(Action == 1) %>% 
+  ggplot() +
+  geom_point(mapping = aes(x = runtime, y = popularity), size = 1, position = "jitter", color = "gray") +
+  ggtitle("Action") + theme(axis.title = element_blank())
+
+D <- marek1 %>% 
+  filter(Thriller == 1) %>%
+  ggplot() + 
+  geom_point(mapping = aes(x = runtime, y = popularity), size = 1, position = "jitter", color = "purple") +
+  ggtitle("Thriller") + theme(axis.title = element_blank())
+
+E <- marek1 %>% 
+  filter(Fantasy == 1) %>% 
+  ggplot() +
+  geom_point(mapping = aes(x = runtime, y = popularity), size = 1, position = "jitter", color = "orange") +
+  ggtitle("Fantasy") + theme(axis.title = element_blank())
+```
+
+```{r}
+Q1A <- ggarrange(A, B, C, ncol = 3, nrow = 1)
+Q1B <- ggarrange(D, E, ncol = 2, nrow = 1)
+Q1 <- ggarrange(Z, Q1A, Q1B, ncol = 1, nrow = 3)
+Q1
+```
+
+###Q2: What are the best times (measured in popularity) to release certain genres?
+
+```{r}
+fullmovies$Month <- format(as_date(fullmovies$release_date), format = "%m")
+
+marek2 <- select(fullmovies, id, popularity, Month, Drama, Comedy, Action, Thriller, Fantasy) 
+
+summary <- marek2 %>% 
+  group_by(Month) %>% 
+  summarize(
+    n = n(),
+    med.pop = median(popularity)
+  )
+
+Z1 <- ggplot(data = summary) +
+  geom_bar(mapping = aes(x = Month, y = med.pop), stat = "identity") + ggtitle("All")
+
+summary1 <- marek2 %>% 
+  filter(Drama == 1) %>% 
+  group_by(Month) %>% 
+  summarize(
+    n = n(),
+    med.pop = median(popularity)
+  )
+
+A1 <- summary1 %>% 
+  ggplot() +
+  geom_bar(mapping = aes(x = Month, y = med.pop), stat = "identity", fill = 'blue') + ggtitle("Drama") + 
+  theme(axis.text = element_blank(), axis.title = element_blank())
+
+summary2 <- marek2 %>% 
+  filter(Comedy == 1) %>% 
+  group_by(Month) %>% 
+  summarize(
+    n = n(),
+    med.pop = median(popularity)
+  )
+
+B1 <- summary2 %>% 
+  ggplot() +
+  geom_bar(mapping = aes(x = Month, y = med.pop), stat = "identity", fill = 'red') + ggtitle("Comedy") + 
+  theme(axis.text = element_blank(), axis.title = element_blank())
+
+summary3 <- marek2 %>% 
+  filter(Action == 1) %>% 
+  group_by(Month) %>% 
+  summarize(
+    n = n(),
+    med.pop = median(popularity)
+  )
+
+C1 <- summary3 %>% 
+  ggplot() +
+  geom_bar(mapping = aes(x = Month, y = med.pop), stat = "identity", fill = 'gray') + ggtitle("Action") +   
+  theme(axis.text = element_blank(), axis.title = element_blank())
+
+summary4 <- marek2 %>% 
+  filter(Thriller == 1) %>% 
+  group_by(Month) %>% 
+  summarize(
+    n = n(),
+    med.pop = median(popularity)
+  )
+
+D1 <- summary %>% 
+  ggplot() +
+  geom_bar(mapping = aes(x = Month, y = med.pop), stat = "identity", fill = 'purple') + ggtitle("Thriller") + 
+  theme(axis.text = element_blank(), axis.title = element_blank())
+
+summary5 <- marek2 %>% 
+  filter(Fantasy == 1) %>% 
+  group_by(Month) %>% 
+  summarize(
+    n = n(),
+    med.pop = median(popularity)
+  )
+
+E1 <- summary5 %>% 
+  ggplot() +
+  geom_bar(mapping = aes(x = Month, y = med.pop), stat = "identity", fill = 'orange') + ggtitle("Fantasy") + 
+  theme(axis.text = element_blank(), axis.title = element_blank())
+```
+
+```{r}
+Q2A <- ggarrange(A1, B1, C1, ncol = 3, nrow = 1)
+Q2B <- ggarrange(D1, E1, ncol = 2, nrow = 1)
+Q2 <- ggarrange(Z1, Q2A, Q2B, ncol = 1, nrow = 3)
+Q2
+```
+
+# Follow-up Questions
+
+### New Questions Based Off Initial Investigation
+
+- Q1: Have people been accepting of longer runtimes over the years?
+- Q2: Does Walt Disney Pictures have a larger/smaller budget for Fantasy and Action movies that release in certain months?
+- Q3: If a company releases a movie on a certain date, do they generate more/less revenue? 
+- Q4: Looking at production companies, how does the runtime compare for Universal Pictures and Warner Brothers?
+
+### Investigation of Follow-up Questions
+
+Our group decided to investigate Q2 and Q3 in further detail.
+
+```{r}
+# Q3
+# If a company releases a movie on a certain date in September, do they generate more/less revenue?
+
+sept_movies <- date_revenue %>% 
+  filter(group == 9)
+
+sept_movies$release_date <- as.Date(sept_movies$release_date)
+sept_movies$release_date <- as.numeric(gsub("-","",sept_movies$release_date))
+sept_movies <- sept_movies %>% 
+  mutate(release_day = release_date%%100)
+
+d_r.summary3 <- sept_movies %>% 
+  group_by(release_day) %>% 
+  summarize(
+    n = n(),
+    med.rev = median(revenue)
+  )
+
+ggplot(d_r.summary3, aes(release_day, med.rev)) + 
+  geom_bar(stat = "identity", fill = "darkgreen") + 
+  scale_x_continuous(breaks = seq(1,30,1)) + 
+  scale_y_continuous(expand = c(0,0)) + 
+  xlab("September Release Day") + 
+  ylab("Median Revenue")
+```
+
+```{r, message=FALSE}
+#Q2
+#Does Walt Disney Pictures have a larger/smaller budget for Fantasy and Action movies that release in certain months?
+
+#Extract month from release date
+df <- separate(data = fullmovies,col = "release_date",into = c("year","month","day"))
+df$month <- factor(df$month)
+df %>% 
+  group_by(month)
+
+#Filter out Production Companies
+wdp <- df %>% 
+  filter(`Walt Disney Pictures` == 1) %>% 
+  select(-`Universal Pictures`, -`Columbia Pictures`, -`Paramount Pictures`, -`Warner Bros.`, -`Relativity Media`, -`Twentieth Century Fox Film Corporation`, -`New Line Cinema`)
+
+#Filter out Fantasy movies from Walt Disney Pictures
+fanfilt = wdp %>% 
+  filter(Fantasy==1) %>% 
+  select(-Drama, -Thriller, -Comedy)
+
+#Filter out Action movies from Walt Disney Pictures
+disact = wdp %>% 
+  filter(Action==1) %>% 
+  select(-Drama, -Thriller, -Comedy)
+
+#Plot
+p1 <- ggplot(fanfilt) +
+  geom_bar(aes(x=Fantasy, y=budget/1000000, fill=month), stat="identity", position="dodge") + 
+  ylab("Budget (in Millions)") + 
+  scale_fill_manual(values = c('03' = "sienna1", '05' = "steelblue1", '06' = "seagreen1", '07' = "pink", '08'= "mintcream",'11' = "plum1", '12'="lightgoldenrod"))
+ 
+p2 <- ggplot(disact) + 
+  geom_bar(aes(x=Action, y=budget/1000000, fill=month), stat="identity", position="dodge") + 
+  ylab("Budget (in Millions)") + 
+  scale_fill_manual(values = c('01' = "indianred", '03' = "sienna1", '05' = "steelblue1", '06' = "seagreen1", '07'="pink", '10'="skyblue",'11'="plum1", '12'="lightgoldenrod"))
+ 
+require(gridExtra)
+grid.arrange(p1, p2, ncol=2)
+```
+
+#Summary
+
+The data set was initially cleaned down to 1434 complete observations. 
+
+**Revenue:** We began by looking at the two-month breakdown of median revenues for these movies. May-June had the highest median revenue followed by November-December, while September-October had the lowest median revenue. More people watch movies over the summer and over the holidays; fewer people watch movies when school starts up again. Individually, June had the highest median revenue and September had the lowest median revenue. 
+
+**Popularity:** We first looked at a few keywords from taglines to see if there was a relationship between tagline and popularity. What we found is that if a tagline contained the keyword "hero" or "story" then the corresponding movie held a higher popularity. We then noticed that popularity behaves differently in each genre. For runtimes, Comedy movies that are near 100 minutes long are ideal; popularity seems to decrease as movies in this genre get longer. Contrastly, the most popular movies for Fantasy and Action are over 150 minutes long. In terms of release dates, some genres perform better in certain months while others have no notable pattern. As an example, Comedy movies do the best during summer while Action movies don't have specific months that are too much more popular than others. 
+
+**Budget/Runtime:** Overall, budget and revenue share a positive relationship. A strong outlier was Avatar as they had a relatively low budget but a very high revenue. Examining the runtime distribution for seven production companies, generally, the runtime is around 100-120 minutes. However, some production companies like Twentieth Century Fox Film Corporation and Columbia Pictures have fluctuating runtimes. Some production companies do produce several movies with similar runtimes while others have varied runtimes across the movies they produce. 
+
+
+**Follow-Ups**
+
+Movies classified as Action that released in December had a relatively higher budget than Fantasy movies in December, which is interesting since December is a part of the holiday season and it is not really expected to see Action movies during that time. It would be interesting to compare revenues for Fantasy and Action movies in a future analysis, so we could do comparisons and see if any meaningful results come out of it.
+
+Conducting a comparison of budgets between Action and Fantasy movies with regard to release month, both genres had the highest budget in May. This result is expected due to more movies being produced during the summertime when more people are on vacation and holidays. The second highest budget for these genres was in March for both Action and Fantasy; June and March actually had a tie in budget for Fantasy movies.
+
+The follow-up question we chose to investigate is the following: "If a company releases a movie on a certain date in September, do they generate more/less revenue?". September is interesting to investigate because it had the lowest median revenue. If a company wants to release a movie in September, then they should release it towards the end of the month. If a company wants to decide between releasing a movie in the first half of September versus the second half of September, then they should release it in the second half of September. These results, again, are not surprising. As the school year ramps up, families are less likely to invest time to watch movies. Once summer ends and fall begins, families are back in the flow of things and the time to watch movies increases.
+

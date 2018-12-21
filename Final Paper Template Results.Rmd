@@ -1,0 +1,531 @@
+---
+title: "Final Paper"
+author: "STOR 320.01 Group 7"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+# Put Necessary Libraries Here
+library(boot)
+library(broom)
+library(lubridate)
+library(modelr)
+library(tidyverse)
+library(kableExtra)
+library(knitr)
+library(summarytools)
+library(ggpubr)
+
+opts_chunk$set(results = 'asis')
+
+
+# Import Data Below
+# Use 'fullmovies' Table
+load("Cleaning.Rdata")
+remove(b,c,credits,d,f,x,new,movies,n)
+```
+
+# INTRODUCTION
+
+Our group decided to delve into the movie industry with a data set from TMDb (The Movie Database). We started by condensing the data to contain 1434 complete observations as well as the corresponding variables we were interested in exploring. Once we had a clean data set, we decided to investigate the following question: What are the best covariates to predict revenue? These covariates consisted of release date, budget, runtime, and popularity. For revenue, we began by performing simple linear regressions for release day against revenue, release month, and release year. We noticed that only the model between release month against revenue had some sort of pattern among all the observations. While the most popular months seemed intuitive, the specific days within a month to best release a movie didn’t seem as obvious. This led our group to investigate the days in the month that are the best to release a movie for the different months of the year. For both the highest and lowest grossing months, the specific days to release a movie within these months is useful knowledge for production companies.
+
+```{r, echo=F, warning =F}
+# If a company releases a movie on a certain date in a certain month, do they generate more/less revenue?
+
+date_revenue <- fullmovies %>% 
+  select(release_date, revenue)
+
+date_revenue$release_day <- 
+  format(as_date(date_revenue$release_date), format = "%d")
+date_revenue$release_month <- 
+  format(as_date(date_revenue$release_date), format = "%m")
+date_revenue$release_year <- 
+  format(as_date(date_revenue$release_date), format = "%y")
+
+date_revenue <- arrange(date_revenue, release_month)
+
+myplots <- list()
+for (month in unique(date_revenue$release_month)) {
+  month_movies <- date_revenue %>% 
+    filter(release_month == month)
+  
+  d_r.summary3 <- month_movies %>% 
+    group_by(release_day) %>% 
+    summarize(
+      n = n(),
+      med.rev = median(revenue)
+    )
+  
+  myplots[[month]] <- ggplot(d_r.summary3, aes(release_day, med.rev)) + 
+    geom_bar(stat = "identity", fill = "darkgreen") + 
+    scale_y_continuous(expand = c(0,0)) + 
+    xlab("Release Days") + 
+    ylab("Median Revenue")
+}
+
+myplots[[8]]
+# Here, the plot for August is fascinating. One can clearly notice that revenue decreases as the days go by. A possible reason for this is the return to school for families and their children.
+
+# for (i in 1:12) {
+#   print(myplots[[i]])
+# }
+```
+
+```{r, echo=F, warning = F}
+# Simple Linear Regression
+d_r <- date_revenue %>% 
+  select(release_day, release_month, release_year, revenue)
+
+day_model <- lm(revenue ~ release_day, data = d_r)
+month_lmodel <- lm(revenue ~ release_month, data = d_r)
+year_model <- lm(revenue ~ release_year, data = d_r)
+
+# Visualizing Models
+d_r %>% 
+  gather_predictions(day_model) %>% 
+  ggplot(aes(x = release_day)) + 
+  geom_point(aes(y = revenue), color = "gray") + 
+  geom_line(aes(y = pred, group = 1), color = "darkgreen") + 
+  ylim(0, 1000000000)
+
+d_r %>% 
+  gather_predictions(month_lmodel) %>% 
+  ggplot(aes(x = release_month)) + 
+  geom_point(aes(y = revenue), color = "gray") + 
+  geom_line(aes(y = pred, group = 1), color = "darkgreen") + 
+  ylim(0, 1000000000)
+
+d_r %>% 
+  gather_predictions(year_model) %>% 
+  ggplot(aes(x = release_year)) + 
+  geom_point(aes(y = revenue), color = "gray") + 
+  geom_line(aes(y = pred, group = 1), color = "darkgreen") + 
+  xlim(c("00", "01", "02", "03", "04", "05", "06", "07", "08", 
+         "09", "10", "11", "12", "13", "14", "15", "16"))
+  # ylim(0, 1000000000)
+```
+
+We continued our investigation of the data by looking at the relationship between budget and revenue. We initially noted that Avatar, a very successful movie by all measures, had an extremely low budget compared to similar performing high-revenue films. This led us to wonder about the relationship between budget and revenue, specifically for different production houses and genres. We explored how different companies, such as Walt Disney Pictures, differed in their budgeting when it came to different genres. Our preliminary investigation consisted of conducting a comparison of budgets between Action and Fantasy movies from all production companies and found that both genres had the highest budget in May. We also noticed that movies released in all months had different budgets depending on their genre, and we intended to further compare revenues for different genres in a future analysis. Understanding how the relationship between budget and revenue is different between genres will give production companies a better understanding of the different investments needed for specific genres.
+
+After understanding what factors affect revenue, we decided to examine the other response variable production companies care about: popularity. In other words, do certain genres have better popularity scores based on runtime and/or other predictors? Since budget had the most influence on revenue, we decided to see how runtime affected popularity. First of all, we observed that the average runtime is around 100-120 minutes and were curious to see how shorter or longer movies performed. After realizing the fluctuation within runtime was primarily due to production company and genre, we decided to consider the ideal runtimes for each individual genre. By understanding this response, production companies can make more insightful decisions about the runtime of particular movies. Equally important, by understanding ideal runtimes, directors can make more efficient decisions on their budgeting for a movie.
+
+# DATA
+
+The dataset pulled from Kaggle originated from TMDb (The Movie Database), where metadata from IMDB is scraped by an international community since 2008 (https://www.themoviedb.org/about). The data was spread across two tables: movies and credits. However, we decided to only use the movies table. This table contained 4803 observations of movies, along with 20 columns regarding information of a movie’s title, tagline, revenue, etc. In this project we will only be focusing on the variables listed below. Here is a description and summary statistics for each: 
+
+*Genre – the genres/categories of the movie (Action, Comedy, Fantasy, etc.)
+*Original Language – the original language in which the movie was made
+*Production Companies – the names of production companies producing the movie
+*Tagline – the tagline of the movie
+*Budget – the amount spent making the movie (US Dollars)
+*Popularity – a metric based on factors, such as number of votes for the day, number of views for the day, number of users who marked it as a "favorite" for the day, number of users who added it to their "watchlist" for the day, release date, number of total votes, previous day’s score to determine a movie’s popularity
+*Release Date – the date the movie was released
+*Revenue – the worldwide amount earned from the movie (US Dollars)
+*Runtime – the duration of the movie in minutes
+
+```{r echo=FALSE}
+#Summarytools package used!!!
+#knitr::opts_chunk$set(echo = TRUE, results = 'asis')
+opts_chunk$set(results='asis')
+knitr::opts_chunk$set(results = 'asis')
+dfSummary(fullmovies, plain.ascii = FALSE, style = 'grid')
+```
+
+The Production Companies and Genres variables were in JSON format so they had to be converted into separate tables for each movie and its id. Since there were over 2,000 production companies and 20 genres, we selected the top 5-7 from each and created binary variables. We combined this data back into the original dataset in order to create one tidy dataset of 1434 complete observations with 22 variables.
+Inspecting the three figures that we created, we produced a correlation matrix with the numeric variables, a figure depicting categorical variables, and a general table outlining the several variables with summary statistics. These three figures give a good representation of the dataset. In the correlation matrix, the size of the bubble represents the strength of the relationship between the numeric variables. Two important considerations from the correlation matrix include the relationship between budget and revenue, and popularity and revenue. Budget and revenue had the highest positive correlation. If a movie has a higher budget, then they will most likely make a larger revenue and vice versa. Similarly, popularity and revenue have a positive correlation. Additionally, the descriptive table gives information on mean, standard deviation, maximum, minimum, median, interquartile range, frequency, and missing values.
+
+The last figure consists of bar graphs showing the distribution of the categorical variables. Most of the movies in our dataset are in English whilst looking at the original language variable. Most movies were identified as drama, followed by comedy, thriller, action, and lastly fantasy. For production companies, Warner Bros. and Universal Pictures had the most movies, followed by Paramount Pictures, Relativity Media, Walt Disney Pictures, Twentieth Century Fox Film Corporation, and New Line Cinema.
+
+```{r echo=FALSE, warning=F}
+#Figures
+
+
+#Correlation Matrix of Numerical Variables
+library(corrplot)
+cols = c(1,4,6,7)
+correlations = cor(fullmovies[,cols])
+corrplot::corrplot(correlations, method="circle", type="upper")
+
+#Genres Plots
+action = ggplot(fullmovies) +
+  geom_bar(aes(x=Action), fill=c("plum", "orange")) + theme(axis.title = element_blank()) + ggtitle("Action") + coord_cartesian(ylim=c(0,1300)) + ylab("Count")
+
+fantasy = ggplot(fullmovies) + geom_bar(aes(x=Fantasy), fill=c("plum", "orange")) + theme(axis.title = element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Fantasy") + coord_cartesian(ylim=c(0,1300))
+
+drama = ggplot(fullmovies) + geom_bar(aes(x=Drama), fill=c("plum", "orange")) + theme(axis.title = element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Drama") + coord_cartesian(ylim=c(0,1300))
+
+thriller = ggplot(fullmovies) + geom_bar(aes(x=Thriller), fill=c("plum", "orange")) + theme(axis.title = element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Thriller") + coord_cartesian(ylim=c(0,1300))
+
+comedy = ggplot(fullmovies) + geom_bar(aes(x=Comedy), fill=c("plum", "orange")) + theme(axis.title = element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Comedy") + coord_cartesian(ylim=c(0,1300))
+
+
+ggplot(fullmovies) +
+  geom_bar(aes(x=original_language), fill="deepskyblue4", stat="count") + ylab("Count") + ggtitle("Original Languages") + theme(axis.title.x=element_blank())
+
+figure1= ggarrange(action, fantasy, drama, thriller, comedy, ncol=5)
+
+annotate_figure(figure1, top=text_grob("Movie Genres", color="black", face="bold", size=16), left=text_grob("Count", rot=90))
+```
+
+```{r echo=FALSE}
+#Production Companies
+warnerbros = ggplot(fullmovies) + geom_bar(aes(x=`Warner Bros.`), fill=c("maroon", "sienna2")) + theme(axis.title=element_blank()) + ggtitle("Warner Bros.") + coord_cartesian(ylim=c(0,1500))
+
+wdp = ggplot(fullmovies) + geom_bar(aes(x=`Walt Disney Pictures`), fill=c("darkcyan", "violet")) + theme(axis.title=element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Walt Disney Pictures") + coord_cartesian(ylim=c(0,1500))
+
+up = ggplot(fullmovies) + geom_bar(aes(x=`Universal Pictures`), fill=c("darkgoldenrod2", "firebrick3")) + theme(axis.title=element_blank()) + ggtitle("Universal Pictures") + coord_cartesian(ylim=c(0,1500))
+
+cp = ggplot(fullmovies) + geom_bar(aes(x=`Columbia Pictures`), fill=c("salmon", "navyblue")) + theme(axis.title=element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Columbia Pictures") + coord_cartesian(ylim=c(0,1500))
+
+pp = ggplot(fullmovies) + geom_bar(aes(x=`Paramount Pictures`), fill=c("darkturquoise", "forestgreen")) + theme(axis.title=element_blank()) + ggtitle("Paramount Pictures") + coord_cartesian(ylim=c(0,1500))
+
+rm = ggplot(fullmovies) + geom_bar(aes(x=`Relativity Media`), fill=c("slateblue3", "lightpink2")) + theme(axis.title=element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("Relativity Media") + coord_cartesian(ylim=c(0,1500))
+
+tcffc = ggplot(fullmovies) + geom_bar(aes(x=`Twentieth Century Fox Film Corporation`), fill=c("burlywood", "red3")) + theme(axis.title=element_blank()) + ggtitle("Twentieth Century Fox Film Co.") + coord_cartesian(ylim=c(0,1500))
+
+nlc = ggplot(fullmovies) + geom_bar(aes(x=`New Line Cinema`), fill=c("deeppink", "tomato4")) + theme(axis.title=element_blank(), axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) + ggtitle("New Line Cinema") + coord_cartesian(ylim=c(0,1500))
+
+figure = ggarrange(warnerbros, wdp, up, cp, pp, rm, tcffc, nlc, ncol=2, nrow=4)
+
+#Annotate the figure
+annotate_figure(figure, top=text_grob("Production Companies", color="black", face="bold",size=16),
+                left=text_grob("Count", rot=90))
+```
+
+# RESULTS
+
+Based on our exploratory data analysis, we decided to answer the following question: Do certain genres have better popularity scores based on runtime and/or other predictors? We split the data into five different genres: Action, Comedy, Drama, Thriller, and Fantasy. The Fantasy genre had 173 observations while the rest of the genres had at least 400 observations. Leave-one-out cross-validation (LOOCV) and polynomial regression were conducted for each of the five genres with runtime as the predictor variable and popularity as the response variable. The order of the regression model was based on the lowest square root of the mean squared error (RMSE). Action and Fantasy fit a linear model the best. Comedy fit a degree 3 polynomial model the best, but we would recommend a linear model because the RMSE for it was only 0.1 worse than the more complex degree 3 polynomial model. Thriller fit a degree 3 polynomial model the best, and Drama fit a degree 4 polynomial model the best. Fantasy had the lowest RMSE out of all the genres, but it also had the least observations to be considered. Other covariates, like budget, were explored to possibly be included in the model along with runtime. However, the correlation of runtime with these covariates was low, and their respective p-values showed insignificance. Thus the RMSE was not significantly reduced when adding other available predictors to the previous models.
+
+```{r, echo=F}
+# Polynomial Regression
+# Predictor Variable = runtime, Response Variable = popularity
+
+# this is for scaling purposes
+fullmovies_pop <- fullmovies[fullmovies$popularity<150, ]
+
+# Action Movies
+fullmovies_action <- fullmovies[fullmovies$Action==1, ]
+set.seed(216)
+testmse <- rep(0, 10)
+df_mse <- data.frame(matrix(ncol = 2, nrow = 10))
+colnames(df_mse) <- c("Degree", "Root MSE")
+for (i in 1:10) {
+  poly.modi <- glm(popularity ~ poly(runtime, i), data = fullmovies_action)
+  testmse[i] <- cv.glm(fullmovies_action, poly.modi, K = 5)$delta[1]
+  df_mse[i, 1] <- i
+  df_mse[i, 2] <- sqrt(testmse[i])
+}
+df_mse_ordered <- df_mse[order(df_mse$`Root MSE`), ]
+rownames(df_mse_ordered) <- NULL
+
+#RMSE HTML table
+df_mse_ordered %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  row_spec(1, bold = T, color = "white", background = "#D7261E")
+
+poly.mod <- lm(popularity ~ poly(runtime, 1), data = fullmovies_action)
+lims <- range(fullmovies_pop$runtime)
+grid <- seq(from = lims[1], to = lims[2])
+preds <- predict(poly.mod, newdata = list(runtime = grid))
+plot(popularity ~ runtime, data = fullmovies_action, col = "darkgrey", 
+     ylim = c(0, 500))
+lines(grid, preds, lwd = 2, col = "red")
+title("Action Degree 1")
+
+# Comedy Movies
+fullmovies_comedy <- fullmovies[fullmovies$Comedy==1 & fullmovies$runtime>0, ]
+set.seed(216)
+testmse <- rep(0, 10)
+df_mse <- data.frame(matrix(ncol = 2, nrow = 10))
+colnames(df_mse) <- c("Degree", "Root MSE")
+for (i in 1:10) {
+  poly.modi <- glm(popularity ~ poly(runtime, i), data = fullmovies_comedy)
+  testmse[i] <- cv.glm(fullmovies_comedy, poly.modi, K = 5)$delta[1]
+  df_mse[i, 1] <- i
+  df_mse[i, 2] <- sqrt(testmse[i])
+}
+df_mse_ordered <- df_mse[order(df_mse$`Root MSE`), ]
+rownames(df_mse_ordered) <- NULL
+
+#RMSE HTML table
+df_mse_ordered %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),full_width = F) %>%
+  row_spec(1, bold = T, color = "white", background = "#D7261E")
+
+poly.mod <- lm(popularity ~ poly(runtime, 1), data = fullmovies_comedy)
+lims <- range(fullmovies_pop$runtime)
+grid <- seq(from = lims[1], to = lims[2])
+preds <- predict(poly.mod, newdata = list(runtime = grid))
+plot(popularity ~ runtime, data = fullmovies_comedy, col = "darkgrey", 
+     ylim = c(0, 500))
+lines(grid, preds, lwd = 2, col = "red")
+title("Comedy Degree 1")
+
+# Drama Movies
+fullmovies_drama <- fullmovies[fullmovies$Drama==1 & fullmovies$runtime>0, ]
+set.seed(216)
+testmse <- rep(0, 10)
+df_mse <- data.frame(matrix(ncol = 2, nrow = 10))
+colnames(df_mse) <- c("Degree", "Root MSE")
+for (i in 1:10) {
+  poly.modi <- glm(popularity ~ poly(runtime, i), data = fullmovies_drama)
+  testmse[i] <- cv.glm(fullmovies_drama, poly.modi, K = 5)$delta[1]
+  df_mse[i, 1] <- i
+  df_mse[i, 2] <- sqrt(testmse[i])
+}
+df_mse_ordered <- df_mse[order(df_mse$`Root MSE`), ]
+rownames(df_mse_ordered) <- NULL
+
+#RMSE HTML table
+df_mse_ordered %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  row_spec(1, bold = T, color = "white", background = "#D7261E")
+
+poly.mod <- lm(popularity ~ poly(runtime, 4), data = fullmovies_drama)
+lims <- range(fullmovies_pop$runtime)
+grid <- seq(from = lims[1], to = lims[2])
+preds <- predict(poly.mod, newdata = list(runtime = grid))
+plot(popularity ~ runtime, data = fullmovies_drama, col = "darkgrey", 
+     ylim = c(0, 500))
+lines(grid, preds, lwd = 2, col = "red")
+title("Drama Degree 4")
+
+# Thriller Movies
+fullmovies_thrill <- fullmovies[fullmovies$Thriller==1 & fullmovies$runtime<170, ]
+set.seed(216)
+testmse <- rep(0, 10)
+df_mse <- data.frame(matrix(ncol = 2, nrow = 10))
+colnames(df_mse) <- c("Degree", "Root MSE")
+for (i in 1:10) {
+  poly.modi <- glm(popularity ~ poly(runtime, i), data = fullmovies_thrill)
+  testmse[i] <- cv.glm(fullmovies_thrill, poly.modi, K = 5)$delta[1]
+  df_mse[i, 1] <- i
+  df_mse[i, 2] <- sqrt(testmse[i])
+}
+df_mse_ordered <- df_mse[order(df_mse$`Root MSE`), ]
+rownames(df_mse_ordered) <- NULL
+
+#RMSE HTML table
+df_mse_ordered %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  row_spec(1, bold = T, color = "white", background = "#D7261E")
+
+poly.mod <- lm(popularity ~ poly(runtime, 3), data = fullmovies_thrill)
+lims <- range(fullmovies_pop$runtime)
+grid <- seq(from = lims[1], to = lims[2])
+preds <- predict(poly.mod, newdata = list(runtime = grid))
+plot(popularity ~ runtime, data = fullmovies_thrill, col = "darkgrey", 
+     ylim = c(0, 500))
+lines(grid, preds, lwd = 2, col = "red")
+title("Thriller Degree 3")
+
+# Fantasy Movies
+fullmovies_fantasy <- fullmovies[fullmovies$Fantasy==1, ]
+set.seed(216)
+testmse <- rep(0, 10)
+df_mse <- data.frame(matrix(ncol = 2, nrow = 10))
+colnames(df_mse) <- c("Degree", "Root MSE")
+for (i in 1:10) {
+  poly.modi <- glm(popularity ~ poly(runtime, i), data = fullmovies_fantasy)
+  testmse[i] <- cv.glm(fullmovies_fantasy, poly.modi, K = 5)$delta[1]
+  df_mse[i, 1] <- i
+  df_mse[i, 2] <- sqrt(testmse[i])
+}
+df_mse_ordered <- df_mse[order(df_mse$`Root MSE`), ]
+rownames(df_mse_ordered) <- NULL
+
+#RMSE HTML table
+df_mse_ordered %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  row_spec(1, bold = T, color = "white", background = "#D7261E")
+
+poly.mod <- lm(popularity ~ poly(runtime, 1), data = fullmovies_fantasy)
+lims <- range(fullmovies_pop$runtime)
+grid <- seq(from = lims[1], to = lims[2])
+preds <- predict(poly.mod, newdata = list(runtime = grid))
+plot(popularity ~ runtime, data = fullmovies_fantasy, col = "darkgrey", 
+     ylim = c(0, 500))
+lines(grid, preds, lwd = 2, col = "red")
+title("Fantasy Degree 1")
+```
+
+To summarize, Action movies with longer runtimes tended to have higher popularity scores. Comedy movies held the shortest runtimes in general, and longer runtimes did not translate into higher popularity. Drama movies with longer runtimes tended to have slightly higher popularity, but one should be cautious to make the movie too long. A similar case can be observed with Thriller movies, although they have shorter runtimes compared to Drama movies. Fantasy movies with longer runtimes clearly had higher popularity, but as stated before there were less observations than the other genres.
+
+Additionally, we decided to answer the following question: What are the best covariates to predict revenue? We began by investigating the relationships of revenue with release date, budget, runtime, and popularity. A simple linear regression was conducted to predict revenue based on release day, release month, and release year. However, these variables were not the best predictors of revenue as seen in the figures. We conducted polynomial regression with budget as the predictor and revenue as the response. A degree 3 polynomial model yielded the best results. We followed this with looking at popularity as the predictor and revenue as the response. Degree 5 and degree 1 polynomial models were both investigated. Degree 5 generated the best results as compared to degree 4, degree 8, and degree 1. Note that in the modeling we only included movies with popularities between 0 and 150 so as not to a) overfit the data and b) make significant test prediction errors in the future.
+
+```{r, echo=F}
+# Polynomial Regression
+# Predictor Variable = budget, Response Variable = revenue
+
+set.seed(216)
+testmse <- rep(0, 10)
+df_mse <- data.frame(matrix(ncol = 2, nrow = 10))
+colnames(df_mse) <- c("Degree", "Root MSE")
+for (i in 1:10) {
+  poly.modi <- glm(revenue ~ poly(budget, i), data = fullmovies)
+  testmse[i] <- cv.glm(fullmovies, poly.modi, K = 5)$delta[1]
+  df_mse[i, 1] <- i
+  df_mse[i, 2] <- sqrt(testmse[i])
+}
+df_mse_ordered <- df_mse[order(df_mse$`Root MSE`), ]
+rownames(df_mse_ordered) <- NULL
+
+poly.mod <- lm(revenue ~ poly(budget, 3), data = fullmovies)
+lims <- range(fullmovies$budget)
+grid <- seq(from = lims[1], to = lims[2], by = 10000000)
+preds <- predict(poly.mod, newdata = list(budget = grid))
+
+layout(1,2)
+plot(revenue ~ budget, data = fullmovies, col = "darkgrey")
+lines(grid, preds, lwd = 2, col = "darkgreen")
+title("Budget Degree 3")
+
+#RMSE HTML table
+df_mse_ordered %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  row_spec(1, bold = T, color = "white", background = "#D7261E")
+
+
+bud.rev = data.frame("Degree" = df_mse_ordered$Degree[1], "Root MSE" = df_mse$`Root MSE`[1])
+```
+
+```{r, echo=F}
+# Polynomial Regression
+# Predictor Variable = popularity, Response Variable = revenue
+
+
+set.seed(216)
+testmse <- rep(0, 10)
+df_mse <- data.frame(matrix(ncol = 2, nrow = 10))
+colnames(df_mse) <- c("Degree", "Root MSE")
+for (i in 1:10) {
+  poly.modi <- glm(revenue ~ poly(popularity, i), data = fullmovies_pop)
+  testmse[i] <- cv.glm(fullmovies_pop, poly.modi, K = 5)$delta[1]
+  df_mse[i, 1] <- i
+  df_mse[i, 2] <- sqrt(testmse[i])
+}
+df_mse_ordered <- df_mse[order(df_mse$`Root MSE`), ]
+rownames(df_mse_ordered) <- NULL
+
+
+poly.mod <- lm(revenue ~ poly(popularity, 1), data = fullmovies_pop)
+lims <- range(fullmovies_pop$popularity)
+grid <- seq(from = lims[1], to = lims[2])
+preds <- predict(poly.mod, newdata = list(popularity = grid))
+plot(revenue ~ popularity, data = fullmovies_pop, col = "darkgrey")
+lines(grid, preds, lwd = 2, col = "darkgreen")
+title("Popularity Degree 1")
+
+poly.mod <- lm(revenue ~ poly(popularity, 5), data = fullmovies_pop)
+lims <- range(fullmovies_pop$popularity)
+grid <- seq(from = lims[1], to = lims[2])
+preds <- predict(poly.mod, newdata = list(popularity = grid))
+plot(revenue ~ popularity, data = fullmovies_pop, col = "darkgrey")
+lines(grid, preds, lwd = 2, col = "darkgreen")
+title("Popularity Degree 5")
+
+#RMSE HTML table
+df_mse_ordered %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  row_spec(1, bold = T, color = "white", background = "#D7261E")
+
+pop.rev = data.frame("Degree" = df_mse_ordered$Degree[1], "Root MSE" = df_mse$`Root MSE`[1])
+```
+
+```{r, echo=F}
+# Regression with Covariate Interaction
+
+fullmovies_inter <- fullmovies[fullmovies$runtime>0, ]
+
+model_inter <- lm(revenue ~ budget*popularity*runtime, data = fullmovies_inter)
+pval = tidy(model_inter)[, c(1,5)]
+
+#P-value HTML table
+pval %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  row_spec(c(2,4,5,6,8), bold = T, color = "white", background = "#D7261E") 
+
+plot(model_inter, 2)
+
+testmse2 <- rep(0, 4)
+df_mse2 <- data.frame(matrix(ncol = 2, nrow = 4))
+colnames(df_mse2) <- c("Interactions", "Root MSE")
+
+glm.fit <- glm(revenue ~ budget*popularity, data = fullmovies_inter)
+cv.err <- cv.glm(fullmovies_inter, glm.fit)
+df_mse2[1, 1] <- "budget and popularity"
+df_mse2[1, 2] <- sqrt(cv.err$delta[1])
+
+glm.fit2 <- glm(revenue ~ budget*runtime, data = fullmovies_inter)
+cv.err2 <- cv.glm(fullmovies_inter, glm.fit2)
+df_mse2[2, 1] <- "budget and runtime"
+df_mse2[2, 2] <- sqrt(cv.err2$delta[1])
+
+glm.fit3 <- glm(revenue ~ budget*popularity*runtime, data = fullmovies_inter)
+cv.err3 <- cv.glm(fullmovies_inter, glm.fit3)
+df_mse2[3, 1] <- "budget and popularity and runtime"
+df_mse2[3, 2] <- sqrt(cv.err3$delta[1])
+
+glm.fit4 <- glm(revenue ~ popularity*runtime, data = fullmovies_inter)
+cv.err4 <- cv.glm(fullmovies_inter, glm.fit4)
+df_mse2[4, 1] <- "popularity and runtime"
+df_mse2[4, 2] <- sqrt(cv.err4$delta[1])
+
+#RMSE HTML table
+df_mse2 %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),full_width = F) %>%
+  row_spec(1, bold = T, color = "white", background = "#D7261E")
+```
+
+In order to see whether multiple predictors would produce better results in predicting revenue, we conducted linear regression with interaction terms. We utilized multiple linear regression with budget, popularity, and runtime as the predictors. Interaction terms are useful in predictive modeling to ensure that exogenous variables are not affecting the relationship between the two variables. A Q-Q plot was created as a check and the plot looked fairly linear, thus leading to the conclusion that the residuals were normal. The lowest RMSE of the interactions coincided with budget and popularity, so we ran LOOCV and polynomial regression again with these two covariates. A degree 4 polynomial model yielded the best results, and its RMSE was lower by 12,826,938 compared to the lowest RMSE for just including popularity.
+
+```{r, echo = F}
+#Results Table for Q1
+
+#Final Table
+result=rbind(bud.rev, pop.rev)
+result[1,1] = "Budget Degree 3"
+result[2,1] = "Popularity Degree 5"
+colnames(result)[colnames(result)=="Root.MSE"] <- "Root MSE"
+result = result[order(result$`Root MSE`), ]
+
+#Interactions Table
+#df_mse2
+
+#Convert these dataframes into HTML tables and aligh them side-by-side
+result %>%
+  kable() %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = F)
+
+df_mse2 %>%
+  kable() %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = F)
+```
+
+
+#CONCLUSION
+
+After noting there were some extremely successful (measured in revenue) movies that had a much lower budget than its peers, we were most interested in exploring revenue out of all the variables our group had access to in our data set. We began by experimenting with different regression models to understand how the pairing of different predictors affected movie sales. We initially expected budget and the production company to be the best predictors of revenue but after the analysis, we found that budget and popularity were the best predictors for revenue. While popularity is harder to anticipate, there are some initial insights into whether a movie will have a positive response by the public. For budget, we think production companies can use this data to better understand the relationship with revenue and how other variables interact with expenses. A larger budget alone is not necessarily needed for a successful movie. During our analysis, we also found that release date, release month, and release year were not the best predictors for revenue; production companies can keep this mind whilst producing movies. To continue our analysis, we think one can break up movies into genres to see if certain months are more receptive to different genres in terms of revenue.
+
+The film industry has had various changes in the last decade in the way consumers interact with movies. By understanding the sales of a movie, those involved in media production could also have a better understanding of the business model of a film. Writers and directors are usually not involved with a movie after the production phase but still have equity in the performance of their movies. Moving forward, directors can have a better understanding of anticipated revenue of a film and make more thoughtful decisions with budget during the production phase of a company. On the other hand, by understanding how variables interact with each other, production companies can intentionally make decisions to maximize revenue by optimizing runtime, genre, budget, and the anticipated popularity score. Finally, we’re aware that some of the variables that can be used to better understand sales are missing from the data set. Realistically, the money spent is not as much an indicator of the success of a movie as is how that money is spent. We didn’t know what amount of the budget was being used for advertising compared to actual movie production which can give us a false idea of the relationship with budget and revenue. The advertising channels and amount of marketing done (and timing) would be ideal variables to consider in order to continue looking into maximizing revenue.
+
+One area where we observed a few striking outliers was in runtime. While most movies are 90 to 120 minutes long, there were a handful of films that were longer than 160 minutes. After understanding how revenue works a bit better from the previous question, our team decided to explore the other factor production companies are concerned about – popularity. Specifically, we were curious to learn the runtimes that were ideal to make a popular movie. We expected the peak for Comedy in popularity to be the shortest runtime and for Fantasy to be the longest. After visualizing the data we found that Comedy movies that are near 100 minutes long are ideal and popularity seems to flatline as movies in this genre get longer. In contrast, the most popular movies for Action and Fantasy are over 150 minutes long.
+
+These findings start an important investigation into the performance of a film based on genre. While ideal release dates, budget and runtime can be maximized for the ideal film, there are some genres where these variables behave vastly different to predict popularity and revenue. Some of the most popular and successful movies have been outliers in the explanatory variables. By having an in-depth understanding of these observations, the industry can be mindful of when breaking traditional methods. Additionally, the amount of money spent is directly correlated with the length of a movie which determines the time it takes to film. By having a better understanding of the ideal length for a movie based on genre, production companies and directors can use their funds wisely to make a more popular film. Moving forward, we think it’d be interesting to investigate how genres have changed over time. As the entertainment industry keeps on changing, we’d want to know which genres are the ones being disrupted the most and which will keep performing as they have in the past. Our data set lacked significant observations from earlier years but by having more observations from before the 21st century, we can anticipate consumer behaviors for the future.
+
+
+
+
+
