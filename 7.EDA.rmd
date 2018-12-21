@@ -1,0 +1,215 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320.01 Group 7"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r, echo=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+# Import Data Below
+load("Cleaning.Rdata")
+
+
+#Convert to factor variables
+fullmovies$Action <- factor(fullmovies$Action)
+fullmovies$Comedy <- factor(fullmovies$Comedy)
+fullmovies$Drama <- factor(fullmovies$Drama)
+fullmovies$Fantasy <- factor(fullmovies$Fantasy)
+fullmovies$Thriller <- factor(fullmovies$Thriller)
+
+fullmovies$`Walt Disney Pictures` <- factor(fullmovies$`Walt Disney Pictures`)
+fullmovies$`Universal Pictures` <- factor(fullmovies$`Universal Pictures`)
+fullmovies$`Warner Bros.` <- factor(fullmovies$`Warner Bros.`)
+fullmovies$`Columbia Pictures` <- factor(fullmovies$`Columbia Pictures`)
+fullmovies$`Paramount Pictures` <- factor(fullmovies$`Paramount Pictures`)
+fullmovies$`Relativity Media` <- factor(fullmovies$`Relativity Media`)
+fullmovies$`Twentieth Century Fox Film Corporation` <- factor(fullmovies$`Twentieth Century Fox Film Corporation`)
+fullmovies$`New Line Cinema` <- factor(fullmovies$`New Line Cinema`)
+```
+
+#Creator: FIRSTNAME LASTNAME
+
+###Q1: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+###Q2: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+#Interpreter: JESSICA HO
+
+###Q1: Is there any relationship between budget and revenue?
+
+```{r, echo=F}
+fullmovies %>%
+  ggplot(aes(x=budget/1000000, y=revenue/1000000)) + geom_point() +geom_smooth(se=FALSE) + 
+  xlab("Budget (in Millions)") +
+  ylab("Revenue (in Millions)")
+
+#fullmovies %>% 
+#  arrange(desc(budget)) %>%
+#  head(10) %>%
+#  ggplot(aes(title, budget/1000000)) + geom_bar(stat="identity") +
+#  theme(axis.title.y = element_blank()) +
+#  ggtitle("Top 10 Movies with Highest Budget") + ylab("Budget (in Millions)") +
+#  coord_flip()
+
+#fullmovies %>%
+#  arrange(desc(revenue)) %>%
+#  head(10) %>%
+#  ggplot(aes(title, revenue/1000000)) + geom_bar(stat="identity") +
+#  theme(axis.title.y = element_blank()) +
+#  ggtitle("Top 10 Movies with Highest Revenue") +coord_flip() +ylab("Revenue (in Millions)")
+
+```
+
+###Q2: What is the distribution of runtime?
+
+```{r, echo=FALSE}
+fullmovies %>%
+  ggplot(aes(x=runtime)) + geom_histogram(binwidth = 10) +
+  xlab("Runtime (in Minutes)") +
+  ggtitle("Distribution of Movie Runtimes")
+```
+
+#Orator: FIRSTNAME LASTNAME
+
+###Q1: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+###Q2: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+#Deliverer: FIRSTNAME LASTNAME
+
+###Q1: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+###Q2: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+# Follow-up Questions
+
+### New Questions Based Off Initial Investigation
+
+- Q1: WRITE_QUESTION_HERE
+- Q2: Does Walt Disney Pictures have a larger/smaller budget for Fantasy and Action movies that release in certain months?
+- Q3: WRITE_QUESTION_HERE 
+- Q4: WRITE_QUESTION_HERE
+
+### Investigation of Follow-up Questions
+
+GIVE WHAT 2 QUESTIONS YOU ATTEMPTED TO INVESTIGATE FURTHER IN COMPLETE SENTENCES (*Example:* Our group decided to investigate Q2 and Q4 in further detail.)
+
+SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
+
+```{r, echo=FALSE}
+df <- separate(data = fullmovies,col = "release_date",into = c("year","month","day"))
+df$month <- factor(df$month)
+df %>%
+  group_by(month)
+  
+```
+
+```{r, echo=FALSE}
+#Filter out Production Companies
+wdp <- df %>%
+  filter(`Walt Disney Pictures` == 1) %>%
+  select(-`Universal Pictures`, -`Columbia Pictures`, -`Paramount Pictures`, -`Warner Bros.`,-`Relativity Media`, -`Twentieth Century Fox Film Corporation`, -`New Line Cinema`)
+
+up <- df %>%
+  filter(`Universal Pictures` == 1) %>%
+  select(-`Walt Disney Pictures`, -`Columbia Pictures`, -`Paramount Pictures`, -`Warner Bros.`,-`Relativity Media`, -`Twentieth Century Fox Film Corporation`, -`New Line Cinema`)
+
+cp <- df %>%
+  filter(`Columbia Pictures` == 1) %>%
+  select(-`Universal Pictures`, -`Universal Pictures`, -`Paramount Pictures`, -`Warner Bros.`,-`Relativity Media`, -`Twentieth Century Fox Film Corporation`, -`New Line Cinema`)
+
+pp <- df %>%
+  filter(`Paramount Pictures` ==1) %>%
+  select(-`Universal Pictures`, -`Columbia Pictures`, -`Walt Disney Pictures`, -`Warner Bros.`,-`Relativity Media`, -`Twentieth Century Fox Film Corporation`, -`New Line Cinema`)
+
+wb <- df %>%
+  filter(`Warner Bros.`==1) %>%
+  select(-`Universal Pictures`, -`Columbia Pictures`, -`Paramount Pictures`, -`Walt Disney Pictures`,-`Relativity Media`, -`Twentieth Century Fox Film Corporation`, -`New Line Cinema`)
+
+rm <- df %>%
+  filter(`Relativity Media` ==1) %>%
+  select(-`Universal Pictures`, -`Columbia Pictures`, -`Paramount Pictures`, -`Warner Bros.`,-`Walt Disney Pictures`, -`Twentieth Century Fox Film Corporation`, -`New Line Cinema`)
+
+tcffc <- df %>%
+  filter(`Twentieth Century Fox Film Corporation` ==1) %>%
+  select(-`Universal Pictures`, -`Columbia Pictures`, -`Paramount Pictures`, -`Warner Bros.`,-`Relativity Media`, -`Walt Disney Pictures`, -`New Line Cinema`)
+
+nlc <- df %>%
+  filter(`New Line Cinema` ==1) %>%
+  select(-`Universal Pictures`, -`Columbia Pictures`, -`Paramount Pictures`, -`Warner Bros.`,-`Relativity Media`, -`Twentieth Century Fox Film Corporation`, -`Walt Disney Pictures`)
+```
+
+```{r, echo=FALSE}
+fanfilt = wdp %>%
+  filter(Fantasy==1) %>%
+  select(-Drama, -Thriller, -Comedy)
+
+disact = wdp %>%
+  filter(Action==1) %>%
+  select(-Drama, -Thriller, -Comedy)
+
+p1 <- ggplot(fanfilt) + 
+  geom_bar(aes(x=Fantasy, y=budget/1000000, fill=month),stat="identity", position="dodge")  +
+  ylab("Budget (in Millions)")
+  
+p2 <- ggplot(disact) + 
+  geom_bar(aes(x=Action, y=budget/1000000, fill=month),stat="identity", position="dodge")  +
+  ylab("Budget (in Millions)")
+
+library(gridExtra)
+grid.arrange(p1,p2, ncol=2)
+```
+
+```{r}
+#
+```
+
+#Summary
+
+GIVE A 2 PARAGRAPH SUMMARY. 
+
+PARAGRAPH 1 SHOULD DESCRIBE WHAT YOU LEARNED ABOUT YOUR DATA FROM INVESTIGATING THE INITIAL QUESTIONS. DID YOU FIND ANYTHING UNUSUAL IN YOUR DATA? DID ANYTHING SURPRISE YOU? WHICH OF THE INITIAL QUESTIONS WERE HELPFUL IN LEADING YOU TO MORE QUESTIONS?
+
+PARAGRAPH 2 SHOULD SUMMARIZE WHAT YOU LEARNED FROM INVESTIGATING THE FOLLOW-UP QUESTIONS. WHY ARE THESE FOLLOW-UP QUESTIONS INTERESTING FOR INVESTIGATION? DESCRIBE THE TABLES/FIGURES YOU USED TO EXPLORE ANSWERS TO THESE FOLLOW-UP QUESTIONS? WHAT DID YOU LEARN FROM THE TABLES/FIGURES REGARDING THE FOLLOW-UP QUESTIONS YOU PROPOSED?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
